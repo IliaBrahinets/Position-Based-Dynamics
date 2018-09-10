@@ -10,11 +10,11 @@ namespace PositionBasedDynamics.Collisions
     public class PlanarCollision3d : Collision3d
     {
 
-        private Vector3d Normal { get; set; }
+        private Vector3f Normal { get; set; }
 
-        private double Distance { get; set; }
+        private float Distance { get; set; }
 
-        public PlanarCollision3d(Vector3d normal, float distance)
+        public PlanarCollision3d(Vector3f normal, float distance)
         {
             Normal = normal.Normalized;
 
@@ -29,11 +29,11 @@ namespace PositionBasedDynamics.Collisions
                 Body3d body = bodies[j];
 
                 int numParticles = body.NumParticles;
-                double radius = body.ParticleRadius;
+                float radius = body.ParticleRadius;
 
                 for (int i = 0; i < numParticles; i++)
                 {
-                    double d = Vector3d.Dot(Normal, body.Predicted[i]) + Distance - radius;
+                    float d = Vector3f.Dot(Normal, body.Predicted[i]) + Distance - radius;
 
                     if (d < 0.0)
                         contacts.Add(new BodyPlaneContact3d(body, i, Normal, Distance));

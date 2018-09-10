@@ -1,0 +1,215 @@
+#include "../Kernels/CubicKernel3D.cginc"
+#include "../Config/ConfigurationData.cginc"
+
+#pragma kernel PreStepForSolveDensityConstraint
+#pragma kernel SolveDensityConstraint
+
+cbuffer consts{
+    uint Iterations;
+};
+
+StructuredBuffer<uint> NeighboursMap;
+StructuredBuffer<uint> NumNeighbours;
+
+StructuredBuffer<float3> FluidPositions;
+RWStructuredBuffer<float3> FluidPredicted;
+
+RWStructuredBuffer<float> FluidDensities;
+RWStructuredBuffer<float> FluidLambda;
+
+cbuffer fluidConsts{
+    float FluidParticleMass;
+    float FluidDensity;
+    uint FluidNumParticles;
+};
+
+StructuredBuffer<float3> BoundaryPositions;
+StructuredBuffer<float> BoundaryPsi;
+
+float ComputePBFDensity(float3 pi, int i, int numNeighbors);
+void ComputePBFLagrangeMultiplier(float3 pi, int i, int numNeighbors);
+float3 SolveDensityConstraint(float3 pi, int i, int numNeighbors);
+
+uint GetNeighbour(int i, int j);
+
+
+[numthreads(BLOCK_SIZE,1,1)]
+void PreStepForSolveDensityConstraint(uint3 id : SV_DispatchThreadID)
+{
+    uint i = id.x;
+
+    if(i >= FluidNumParticles) return;
+
+
+    float3 pi = FluidPredicted[i];
+    uint numNeighbours = NumNeighbours[i];
+    //Calculate density constraint. 
+    ComputePBFDensity(pi, i, numNeighbours);
+    ComputePBFLagrangeMultiplier(pi, i, numNeighbours); 
+}
+
+float ComputePBFDensity(float3 pi, int i, int numNeighbors)
+{
+    //Density for Pi
+    // Di = SUMj Mj * W(Pi - Pj, h)
+
+    // Compute current density for particle i
+    float particleDensity = FluidParticleMass * W_zero;
+
+    for (int j = 0; j < numNeighbors; j++)
+    {
+        uint neighborIndex = GetNeighbour(i,j);
+        if (neighborIndex < FluidNumParticles) // Test if fluid particle
+        {
+            float3 pn = FluidPredicted[neighborIndex];
+            particleDensity += FluidParticleMass * W(pi.x - pn.x, pi.y - pn.y, pi.z - pn.z);
+        }
+        else
+        {
+            int k = neighborIndex - FluidNumParticles;
+
+            float3 pn = BoundaryPositions[k];
+            particleDensity += BoundaryPsi[k] * W(pi.x - pn.x, pi.y - pn.y, pi.z - pn.z);
+        }
+    }
+
+    float maxDensity = particleDensity;
+    if (FluidDensity > maxDensity) maxDensity = FluidDensity;
+
+    FluidDensities[i] = particleDensity;
+
+    return maxDensity - FluidDensity;
+}
+
+void ComputePBFLagrangeMultiplier(float3 pi, int i, int numNeighbors)
+{
+
+    float eps = 1.0e-6f;
+    float InvDensity = 1.0f / FluidDensity;
+    float MassMulInvDensity = FluidParticleMass * InvDensity;
+
+    // Evaluate constraint function. Clamp to prevent particle clumping at surface.
+    //Ci = Di / D0 - 1
+    float C = FluidDensities[i] * InvDensity - 1.0f;
+    if (C < 0.0) C = 0.0f;
+
+    if (C != 0.0)
+    {
+        //Compute gradients.
+
+        //Constraint gradient for Pi
+        //dPkCi = 1/D0 * SUMj dPk * W(Pi - Pj, h)
+
+        float sum_grad_C2 = 0;
+        float3 gradC_i = float3(0,0,0);
+
+        for (int j = 0; j < numNeighbors; j++)
+        {
+            uint neighborIndex = GetNeighbour(i,j);
+            if (neighborIndex < FluidNumParticles) // Test if fluid particle
+            {
+                float3 pn = FluidPredicted[neighborIndex];
+                float3 gradW = GradW(pi.x - pn.x, pi.y - pn.y, pi.z - pn.z);
+
+                float3 gradC_j;
+                gradC_j.x = -MassMulInvDensity * gradW.x;
+                gradC_j.y = -MassMulInvDensity * gradW.y;
+                gradC_j.z = -MassMulInvDensity * gradW.z;
+
+                sum_grad_C2 += gradC_j.x * gradC_j.x + gradC_j.y * gradC_j.y + gradC_j.z * gradC_j.z;
+
+                gradC_i.x -= gradC_j.x;
+                gradC_i.y -= gradC_j.y;
+                gradC_i.z -= gradC_j.z;
+            }
+            else
+            {
+                int k = neighborIndex - FluidNumParticles;
+
+                float3 pn = BoundaryPositions[k];
+                float3 gradW = GradW(pi.x - pn.x, pi.y - pn.y, pi.z - pn.z);
+
+                float psi = -BoundaryPsi[k] * InvDensity;
+
+                float3 gradC_j;
+                gradC_j.x = psi * gradW.x;
+                gradC_j.y = psi * gradW.y;
+                gradC_j.z = psi * gradW.z;
+
+                sum_grad_C2 += gradC_j.x * gradC_j.x + gradC_j.y * gradC_j.y + gradC_j.z * gradC_j.z;
+
+                gradC_i.x -= gradC_j.x;
+                gradC_i.y -= gradC_j.y;
+                gradC_i.z -= gradC_j.z;
+            }
+        }
+
+        sum_grad_C2 += gradC_i.x*gradC_i.x + gradC_i.y*gradC_i.y + gradC_i.z*gradC_i.z;
+
+        //Lambda for Pi
+        //Li = -Ci / SUM | dPk Ci |^ 2 + e
+
+        // Compute lambda
+        FluidLambda[i] = -C / (sum_grad_C2 + eps);
+    }
+    else
+    {
+        FluidLambda[i] = 0;
+    }
+
+}
+
+
+[numthreads(BLOCK_SIZE,1,1)]
+void SolveDensityConstraint(uint3 id : SV_DispatchThreadID)
+{
+    int i = id.x;
+    
+    if(i >= FluidNumParticles) return;
+
+    float3 pi = FluidPredicted[i];
+    uint numNeighbours = NumNeighbours[i];
+    //Total position update for Pi
+    // dPi = 1 / D0 * SUMj (Li + Lj) * dW(Pi - Pj, h)
+
+    float3 corr = float3(0,0,0);
+    float InvDensity = 1.0f / FluidDensity;
+    float MassMulInvDensity = FluidParticleMass * InvDensity;
+
+    float currParticlesLambda = FluidLambda[i];
+
+    for (int j = 0; j < numNeighbours; j++)
+    {
+        uint neighborIndex = GetNeighbour(i,j);
+        if (neighborIndex < FluidNumParticles) // Test if fluid particle
+        {
+            float3 pn = FluidPredicted[neighborIndex];
+
+            float3 gradW = GradW(pi.x - pn.x, pi.y - pn.y, pi.z - pn.z);
+
+            float lambda = (currParticlesLambda + FluidLambda[neighborIndex]) * -MassMulInvDensity;
+            corr.x -= lambda * gradW.x;
+            corr.y -= lambda * gradW.y;
+            corr.z -= lambda * gradW.z;
+        }
+        else
+        {
+            int k = neighborIndex - FluidNumParticles;
+
+            float3 pn = BoundaryPositions[k];
+
+            float3 gradW = GradW(pi.x - pn.x, pi.y - pn.y, pi.z - pn.z);
+
+            float lambda = currParticlesLambda * -BoundaryPsi[k] * InvDensity;
+            corr.x -= lambda * gradW.x;
+            corr.y -= lambda * gradW.y;
+            corr.z -= lambda * gradW.z;
+        }
+    }
+
+    FluidPredicted[i] += corr;
+}
+
+inline uint GetNeighbour(int i, int j){
+    return NeighboursMap[i * MAX_NEIGHBOURS + j];
+}

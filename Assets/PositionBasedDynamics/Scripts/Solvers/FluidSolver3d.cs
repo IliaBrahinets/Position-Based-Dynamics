@@ -7,6 +7,7 @@ using Common.Mathematics.LinearAlgebra;
 using PositionBasedDynamics.Forces;
 using PositionBasedDynamics.Bodies;
 using PositionBasedDynamics.Bodies.Fluids;
+using UnityEngine;
 
 namespace PositionBasedDynamics.Solvers
 {
@@ -29,7 +30,7 @@ namespace PositionBasedDynamics.Solvers
             Forces.Add(force);
         }
 
-        public void StepPhysics(double dt)
+        public void StepPhysics(float dt)
         {
 
             if (dt == 0.0) return;
@@ -38,29 +39,33 @@ namespace PositionBasedDynamics.Solvers
 
             EstimatePositions(dt);
 
+            //the highest priority to parallel it
             UpdateConstraint();
 
             UpdateVelocities(dt);
 
+            //the second after the highest priority to parallel it
             Body.ComputeViscosity();
 
             UpdatePositions();
         }
 
-        private void AppyExternalForces(double dt)
+        private void AppyExternalForces(float dt)
         {
-            for (int i = 0; i < Body.NumParticles; i++)
-            {
-                Body.Velocities[i] -= (Body.Velocities[i] * Body.Dampning) * dt;
-            }
+            
+            //for (int i = 0; i < Body.NumParticles; i++)
+            //{
+              //  Body.Velocities[i] -= (Body.Velocities[i] * Body.Dampning) * dt;
+            //}
 
             for (int i = 0; i < Forces.Count; i++)
             {
-                Forces[i].ApplyForce(dt, Body);
+                Forces[i].ApplyForce(dt,Body);
             }
+
         }
 
-        private void EstimatePositions(double dt)
+        private void EstimatePositions(float dt)
         {
             for (int i = 0; i < Body.NumParticles; i++)
             {
@@ -73,13 +78,13 @@ namespace PositionBasedDynamics.Solvers
             Body.ConstrainPositions(1);
         }
 
-        private void UpdateVelocities(double dt)
+        private void UpdateVelocities(float dt)
         {
-            double inv_dt = 1.0 / dt;
+            float inv_dt = 1.0f / dt;
 
             for (int i = 0; i < Body.NumParticles; i++)
             {
-                Vector3d d = Body.Predicted[i] - Body.Positions[i];
+                Vector3f d = Body.Predicted[i] - Body.Positions[i];
                 Body.Velocities[i] = d * inv_dt;
             }
         }

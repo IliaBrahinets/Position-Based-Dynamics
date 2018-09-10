@@ -1,0 +1,32 @@
+#include "../Config/ConfigurationData.cginc"
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel EstimatePositions
+#pragma kernel UpdateVelocities
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+cbuffer consts{
+    float dt;
+    uint MatterParticles;
+}
+RWStructuredBuffer<float3> Positions;
+RWStructuredBuffer<float3> Predicted;
+RWStructuredBuffer<float3> Velocities;
+
+[numthreads(BLOCK_SIZE,1,1)]
+void EstimatePositions (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= MatterParticles) return;
+    int i = id.x;
+	Predicted[i] = Positions[i] + dt * Velocities[i];
+}
+
+[numthreads(BLOCK_SIZE,1,1)]
+void UpdateVelocities (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= MatterParticles) return;
+    int i = id.x;
+    float3 d = Predicted[i] - Positions[i];
+    Velocities[i] = d / dt;
+}
+
+

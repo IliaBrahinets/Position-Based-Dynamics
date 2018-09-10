@@ -1,0 +1,3 @@
+#define BLOCK_SIZE 512
+
+#define MAX_NEIGHBOURS 120

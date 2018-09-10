@@ -22,13 +22,14 @@ namespace PositionBasedDynamics.Constraints
 
         internal override void ConstrainPositions(double di)
         {
+            /*
             FluidBody3d fluid = Body as FluidBody3d;
             if (fluid == null) return;
 
-            fluid.Hash.NeighborhoodSearch(fluid.Predicted, Boundary.Positions);
+            //fluid.Hash.NeighborhoodSearch(fluid.Predicted, Boundary.Positions);
 
-            int[,] neighbors = fluid.Hash.Neighbors;
-            int[] numNeighbors = fluid.Hash.NumNeighbors;
+            //int[,] neighbors = fluid.Hash.Neighbors;
+            //int[] numNeighbors = fluid.Hash.NumNeighbors;
 
             int iter = 0;
             while (iter < Iterations)
@@ -36,7 +37,7 @@ namespace PositionBasedDynamics.Constraints
                 //Calculate lambda.
                 for (int i = 0; i < fluid.NumParticles; i++)
                 {
-                    Vector3d pi = fluid.Predicted[i];
+                    Vector3f pi = fluid.Predicted[i];
                     //Calculate density constraint. 
                     ComputePBFDensity(fluid, pi, i, numNeighbors[i], neighbors);
                     ComputePBFLagrangeMultiplier(fluid, pi, i, numNeighbors[i], neighbors);
@@ -45,7 +46,7 @@ namespace PositionBasedDynamics.Constraints
                 //Update position.
                 for (int i = 0; i < fluid.NumParticles; i++)
                 {
-                    Vector3d pi = fluid.Predicted[i];
+                    Vector3f pi = fluid.Predicted[i];
                     fluid.Predicted[i] += SolveDensityConstraint(fluid, pi, i, numNeighbors[i], neighbors);
                 }
 
@@ -53,31 +54,32 @@ namespace PositionBasedDynamics.Constraints
             }
 
             fluid.Hash.IncrementTimeStamp(); //TODO - needs to move
+            */
         }
-
-        private double ComputePBFDensity(FluidBody3d fluid, Vector3d pi, int i, int numNeighbors, int[,] neighbors)
+/*
+        private double ComputePBFDensity(FluidBody3d fluid, Vector3f pi, int i, int numNeighbors, int[,] neighbors)
         {
 
             //Density for Pi
             // Di = SUMj Mj * W(Pi - Pj, h)
 
             // Compute current density for particle i
-            fluid.Densities[i] = fluid.ParticleMass * fluid.Kernel.W_zero;
+            fluid.Densities[i] = fluid.ParticleMass * (float)fluid.Kernel.W_zero;
 
             for (int j = 0; j < numNeighbors; j++)
             {
                 int neighborIndex = neighbors[i, j];
                 if (neighborIndex < fluid.NumParticles) // Test if fluid particle
                 {
-                    Vector3d pn = fluid.Predicted[neighborIndex];
-                    fluid.Densities[i] += fluid.ParticleMass * fluid.Kernel.W(pi.x - pn.x, pi.y - pn.y, pi.z - pn.z);
+                    Vector3f pn = fluid.Predicted[neighborIndex];
+                    fluid.Densities[i] += fluid.ParticleMass * (float)fluid.Kernel.W(pi.x - pn.x, pi.y - pn.y, pi.z - pn.z);
                 }
                 else
                 {
                     int k = neighborIndex - fluid.NumParticles;
 
-                    Vector3d pn = Boundary.Positions[k];
-                    fluid.Densities[i] += Boundary.Psi[k] * fluid.Kernel.W(pi.x - pn.x, pi.y - pn.y, pi.z - pn.z);
+                    Vector3f pn = Boundary.Positions[k];
+                    fluid.Densities[i] += Boundary.Psi[k] * (float)fluid.Kernel.W(pi.x - pn.x, pi.y - pn.y, pi.z - pn.z);
                 }
             }
 
@@ -87,17 +89,17 @@ namespace PositionBasedDynamics.Constraints
             return maxDensity - fluid.Density;
         }
 
-        private void ComputePBFLagrangeMultiplier(FluidBody3d fluid, Vector3d pi, int i, int numNeighbors, int[,] neighbors)
+        private void ComputePBFLagrangeMultiplier(FluidBody3d fluid, Vector3f pi, int i, int numNeighbors, int[,] neighbors)
         {
 
-            double eps = 1.0e-6;
-            double InvDensity = 1.0 / fluid.Density;
-            double MassMulInvDensity = fluid.ParticleMass * InvDensity;
+            float eps = 1.0e-6f;
+            float InvDensity = 1.0f / fluid.Density;
+            float MassMulInvDensity = fluid.ParticleMass * InvDensity;
 
             // Evaluate constraint function. Clamp to prevent particle clumping at surface.
             //Ci = Di / D0 - 1
-            double C = fluid.Densities[i] * InvDensity - 1.0;
-            if (C < 0.0) C = 0.0;
+            float C = fluid.Densities[i] * InvDensity - 1.0f;
+            if (C < 0.0) C = 0.0f;
 
             if (C != 0.0)
             {
@@ -106,21 +108,21 @@ namespace PositionBasedDynamics.Constraints
                 //Constraint gradient for Pi
                 //dPkCi = 1/D0 * SUMj dPk * W(Pi - Pj, h)
 
-                double sum_grad_C2 = 0.0;
-                Vector3d gradC_i = Vector3d.Zero;
+                float sum_grad_C2 = 0.0f;
+                Vector3f gradC_i = Vector3f.Zero;
 
                 for (int j = 0; j < numNeighbors; j++)
                 {
                     int neighborIndex = neighbors[i, j];
                     if (neighborIndex < fluid.NumParticles) // Test if fluid particle
                     {
-                        Vector3d pn = fluid.Predicted[neighborIndex];
+                        Vector3f pn = fluid.Predicted[neighborIndex];
                         Vector3d gradW = fluid.Kernel.GradW(pi.x - pn.x, pi.y - pn.y, pi.z - pn.z);
 
-                        Vector3d gradC_j;
-                        gradC_j.x = -MassMulInvDensity * gradW.x;
-                        gradC_j.y = -MassMulInvDensity * gradW.y;
-                        gradC_j.z = -MassMulInvDensity * gradW.z;
+                        Vector3f gradC_j;
+                        gradC_j.x = -MassMulInvDensity * (float)gradW.x;
+                        gradC_j.y = -MassMulInvDensity * (float)gradW.y;
+                        gradC_j.z = -MassMulInvDensity * (float)gradW.z;
 
                         sum_grad_C2 += gradC_j.x * gradC_j.x + gradC_j.y * gradC_j.y + gradC_j.z * gradC_j.z;
 
@@ -132,15 +134,15 @@ namespace PositionBasedDynamics.Constraints
                     {
                         int k = neighborIndex - fluid.NumParticles;
 
-                        Vector3d pn = Boundary.Positions[k];
+                        Vector3f pn = Boundary.Positions[k];
                         Vector3d gradW = fluid.Kernel.GradW(pi.x - pn.x, pi.y - pn.y, pi.z - pn.z);
 
-                        double psi = -Boundary.Psi[k] * InvDensity;
+                        float psi = -Boundary.Psi[k] * InvDensity;
 
-                        Vector3d gradC_j;
-                        gradC_j.x = psi * gradW.x;
-                        gradC_j.y = psi * gradW.y;
-                        gradC_j.z = psi * gradW.z;
+                        Vector3f gradC_j;
+                        gradC_j.x = psi * (float)gradW.x;
+                        gradC_j.y = psi * (float)gradW.y;
+                        gradC_j.z = psi * (float)gradW.z;
 
                         sum_grad_C2 += gradC_j.x * gradC_j.x + gradC_j.y * gradC_j.y + gradC_j.z * gradC_j.z;
 
@@ -160,52 +162,52 @@ namespace PositionBasedDynamics.Constraints
             }
             else
             {
-                fluid.Lambda[i] = 0.0;
+                fluid.Lambda[i] = 0.0f;
             }
 
         }
 
-        private Vector3d SolveDensityConstraint(FluidBody3d fluid, Vector3d pi, int i, int numNeighbors, int[,] neighbors)
+        private Vector3f SolveDensityConstraint(FluidBody3d fluid, Vector3f pi, int i, int numNeighbors, int[,] neighbors)
         {
 
             //Total position update for Pi
             // dPi = 1 / D0 * SUMj (Li + Lj) * dW(Pi - Pj, h)
 
-            Vector3d corr = Vector3d.Zero;
-            double InvDensity = 1.0 / fluid.Density;
-            double MassMulInvDensity = fluid.ParticleMass * InvDensity;
+            Vector3f corr = Vector3f.Zero;
+            float InvDensity = 1.0f / fluid.Density;
+            float MassMulInvDensity = fluid.ParticleMass * InvDensity;
 
             for (int j = 0; j < numNeighbors; j++)
             {
                 int neighborIndex = neighbors[i, j];
                 if (neighborIndex < fluid.NumParticles) // Test if fluid particle
                 {
-                    Vector3d pn = fluid.Predicted[neighborIndex];
+                    Vector3f pn = fluid.Predicted[neighborIndex];
 
                     Vector3d gradW = fluid.Kernel.GradW(pi.x - pn.x, pi.y - pn.y, pi.z - pn.z);
 
-                    double lambda = (fluid.Lambda[i] + fluid.Lambda[neighborIndex]) * -MassMulInvDensity;
-                    corr.x -= lambda * gradW.x;
-                    corr.y -= lambda * gradW.y;
-                    corr.z -= lambda * gradW.z;
+                    float lambda = (fluid.Lambda[i] + fluid.Lambda[neighborIndex]) * -MassMulInvDensity;
+                    corr.x -= lambda * (float)gradW.x;
+                    corr.y -= lambda * (float)gradW.y;
+                    corr.z -= lambda * (float)gradW.z;
                 }
                 else
                 {
                     int k = neighborIndex - fluid.NumParticles;
 
-                    Vector3d pn = Boundary.Positions[k];
+                    Vector3f pn = Boundary.Positions[k];
 
                     Vector3d gradW = fluid.Kernel.GradW(pi.x - pn.x, pi.y - pn.y, pi.z - pn.z);
 
-                    double lambda = fluid.Lambda[i] * -Boundary.Psi[k] * InvDensity;
-                    corr.x -= lambda * gradW.x;
-                    corr.y -= lambda * gradW.y;
-                    corr.z -= lambda * gradW.z;
+                    float lambda = fluid.Lambda[i] * -Boundary.Psi[k] * InvDensity;
+                    corr.x -= lambda * (float)gradW.x;
+                    corr.y -= lambda * (float)gradW.y;
+                    corr.z -= lambda * (float)gradW.z;
                 }
             }
 
             return corr;
         }
-
+*/
     }
 }

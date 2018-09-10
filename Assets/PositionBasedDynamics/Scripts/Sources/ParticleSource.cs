@@ -10,13 +10,13 @@ namespace PositionBasedDynamics.Sources
     {
         public int NumParticles { get { return Positions.Count; } }
 
-        public IList<Vector3d> Positions { get; protected set; }
+        public IList<Vector3f> Positions { get; protected set; }
 
-        public double Spacing { get; private set; }
+        public float Spacing { get; private set; }
 
-        public double Diameter {  get { return Spacing * 2.0; } }
+        public float Diameter {  get { return Spacing * 2.0f; } }
 
-        public ParticleSource(double spacing)
+        public ParticleSource(float spacing)
         {
             Spacing = spacing;
         }

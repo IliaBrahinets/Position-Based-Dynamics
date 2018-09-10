@@ -13,7 +13,7 @@ namespace PositionBasedDynamics.Constraints
 
         private readonly int i0;
 
-        private Vector3d Position { get; set; }
+        private Vector3f Position { get; set; }
 
         internal StaticConstraint3d(Body3d body, int i) : base(body)
         {

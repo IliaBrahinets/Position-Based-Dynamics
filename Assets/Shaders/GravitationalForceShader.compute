@@ -1,0 +1,22 @@
+﻿#include "./Config/ConfigurationData.cginc"
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMains
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+cbuffer consts{
+	float dt;
+	float Gravity;
+	uint MatterParticles;
+}
+RWStructuredBuffer<float3> Velocities;
+
+[numthreads(BLOCK_SIZE,1,1)]
+void CSMains (uint3 id : SV_DispatchThreadID)
+{
+	// TODO: insert actual code here!
+
+	if(id.x >= MatterParticles) return;
+
+	Velocities[id.x].y += Gravity*dt;
+}

@@ -1,0 +1,244 @@
+#include "../ParticleType.cginc"
+#include "../Int3Helper.cginc"
+#include "../CellGridHelper.cginc"
+
+#define MAX_NEIGHBOURS 120
+
+#define BLOCK_SIZE 512
+
+#pragma kernel ConstructMap
+
+
+cbuffer cb
+{
+    uint NumAllParticles;
+	uint NumMatterParticles;
+    StructuredBuffer<int3> NeighbourShifts;
+    float AcceptenceRadius;
+};
+
+StructuredBuffer<float3> MatterParticlesCoords : register(t0);
+StructuredBuffer<float3> BoundaryParticlesCoords : register(t1);
+StructuredBuffer<Particle> SortedParticles : register(t2);
+RWStructuredBuffer<uint> NeighboursMap : register(u0);
+RWStructuredBuffer<uint> NumNeighbours : register(u1);
+
+int BinarySearch(int3 particleCell);
+void FindNeighboursWithSortedStructure(uint id, float3 currParticleCoord, int3 currCell, uint positionInSortedAray);
+uint HandleCell(uint positionInSortedArray, float3 currParticleCoord, int3 currCell, uint particleNeighbourStart, uint numNeighbours);
+uint HandleCellWithExclusion(uint positionInSortedArray, float3 currParticleCoord, int3 currCell, uint particleNeighbourStart, uint numNeighbours, uint exclusion);
+bool IsCloseEnough(float3 first, float3 second);
+
+[numthreads(BLOCK_SIZE,1,1)]
+void ConstructMap(uint3 Gid  : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint  GI : SV_GroupIndex){
+
+    uint id = DTid.x;
+
+    if(id >= NumMatterParticles) return;
+
+    float3 currParticleCoord = MatterParticlesCoords[id];
+    int3 currParticleCell = Floor(currParticleCoord);
+
+    int positionOfCellInSortedArray = BinarySearch(currParticleCell);
+
+    FindNeighboursWithSortedStructure(id, currParticleCoord, currParticleCell, positionOfCellInSortedArray);
+
+}
+
+inline int BinarySearch(int3 particleCell)
+{
+    int left = 0;
+    int right = NumAllParticles - 1;
+
+    while (left <= right)
+    {
+        int mid = (left + right) >> 1;
+
+        int c = CompareInt3(particleCell,SortedParticles[mid].cell);
+
+        if (c == 0)
+        {
+            return mid;
+        }
+
+        if(c > 0)
+        {
+            left = mid + 1;
+        }
+        else
+        {
+            right = mid - 1;
+        }
+    }
+
+    return -1;
+}
+
+inline void FindNeighboursWithSortedStructure(uint id, float3 currParticleCoord, int3 currCell, uint positionInSortedAray){
+    uint numNeighbours = 0;
+
+    uint particleNeighbourStart = MAX_NEIGHBOURS*id;
+
+    numNeighbours = HandleCellWithExclusion(positionInSortedAray, currParticleCoord, currCell, particleNeighbourStart, numNeighbours, id);
+
+    [unroll(26)]
+    for(uint i = 0; i < 26; i++){
+
+        int3 neighbourCell = NeighbourShifts[i] + currCell;
+        int neighbourPositionInSortedArray = BinarySearch(neighbourCell);
+
+        if(neighbourPositionInSortedArray != -1){
+            //handle all the cell in which the found particle is placed
+            numNeighbours = HandleCell(neighbourPositionInSortedArray, currParticleCoord, neighbourCell, particleNeighbourStart, numNeighbours);
+
+            if(numNeighbours == MAX_NEIGHBOURS){
+                NumNeighbours[id] = MAX_NEIGHBOURS;
+                return;
+            }
+        }
+
+    }
+    
+
+    NumNeighbours[id] = numNeighbours;
+
+}
+
+inline uint HandleCell(uint positionInSortedArray, float3 currParticleCoord, int3 currCell, uint particleNeighbourStart, uint numNeighbours){
+
+    Particle tmp;
+
+    int k = positionInSortedArray;
+    //to the right
+    //[unroll(MAX_NEIGHBOURS)]
+    //unroll is commented because compiled shader is getting so big,  more than 10000 lines 
+    while(Equals((tmp=SortedParticles[k]).cell, currCell)
+        && numNeighbours < MAX_NEIGHBOURS 
+        && k < NumAllParticles){
+        float3 neighbourCoord;
+
+        if(tmp.number < NumMatterParticles){
+            neighbourCoord = MatterParticlesCoords[tmp.number];
+        } 
+        else
+        {
+            neighbourCoord = BoundaryParticlesCoords[tmp.number - NumMatterParticles];
+        }
+
+        if(IsCloseEnough(currParticleCoord, neighbourCoord)){
+            NeighboursMap[particleNeighbourStart + numNeighbours] = tmp.number;
+            numNeighbours++;
+        }
+
+        k++;
+    }
+
+    if(positionInSortedArray != 0){
+
+        k = positionInSortedArray - 1; 
+        //to the left
+        //[unroll(MAX_NEIGHBOURS)]
+        while(Equals((tmp=SortedParticles[k]).cell, currCell) 
+            && numNeighbours < MAX_NEIGHBOURS 
+            && k >= 0){
+            float3 neighbourCoord;
+
+            if(tmp.number < NumMatterParticles){
+                neighbourCoord = MatterParticlesCoords[tmp.number];
+            } 
+            else
+            {
+                neighbourCoord = BoundaryParticlesCoords[tmp.number - NumMatterParticles];
+            }
+
+            if(IsCloseEnough(currParticleCoord, neighbourCoord)){
+                NeighboursMap[particleNeighbourStart + numNeighbours] = tmp.number;
+                numNeighbours++;
+            }
+
+            k--;
+        }
+    }
+
+    return numNeighbours;
+}
+
+inline uint HandleCellWithExclusion(uint positionInSortedArray, float3 currParticleCoord, int3 currCell, uint particleNeighbourStart, uint numNeighbours, uint exclusion){
+
+
+    Particle tmp;
+
+    int k = positionInSortedArray;
+    //to the right
+    //[unroll(MAX_NEIGHBOURS)]
+    //unroll is commented because compiled shader is getting so big,  more than 10000 lines 
+    while(Equals((tmp=SortedParticles[k]).cell, currCell)
+        && numNeighbours < MAX_NEIGHBOURS 
+        && k < NumAllParticles){
+        if(tmp.number == exclusion) {
+            k++;
+            continue;
+        }
+        float3 neighbourCoord;
+
+        if(tmp.number < NumMatterParticles){
+            neighbourCoord = MatterParticlesCoords[tmp.number];
+        } 
+        else
+        {
+            neighbourCoord = BoundaryParticlesCoords[tmp.number - NumMatterParticles];
+        }
+
+        if(IsCloseEnough(currParticleCoord, neighbourCoord)){
+            NeighboursMap[particleNeighbourStart + numNeighbours] = tmp.number;
+            numNeighbours++;
+        }
+
+        k++;
+    }
+
+    if(positionInSortedArray != 0){
+
+        k = positionInSortedArray - 1; 
+        //to the left
+        //[unroll(MAX_NEIGHBOURS)]
+        while(Equals((tmp=SortedParticles[k]).cell, currCell) 
+            && numNeighbours < MAX_NEIGHBOURS 
+            && k >= 0){
+            if(tmp.number == exclusion) {
+                k--;
+                continue;
+            }
+            float3 neighbourCoord;
+
+            if(tmp.number < NumMatterParticles){
+                neighbourCoord = MatterParticlesCoords[tmp.number];
+            } 
+            else
+            {
+                neighbourCoord = BoundaryParticlesCoords[tmp.number - NumMatterParticles];
+            }
+
+            if(IsCloseEnough(currParticleCoord, neighbourCoord)){
+                NeighboursMap[particleNeighbourStart + numNeighbours] = tmp.number;
+                numNeighbours++;
+            }
+
+            k--;
+        }
+    }
+
+    return numNeighbours;
+}
+
+
+inline bool IsCloseEnough(float3 first, float3 second){
+    float3 sub = first-second;
+    float len = sub.x*sub.x + sub.y *sub.y + sub.z*sub.z;
+
+    if(len < AcceptenceRadius*AcceptenceRadius){
+        return true;
+    }
+
+    return false;
+}

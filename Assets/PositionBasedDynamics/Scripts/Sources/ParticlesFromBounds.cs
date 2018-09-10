@@ -10,15 +10,15 @@ namespace PositionBasedDynamics.Sources
     public class ParticlesFromBounds : ParticleSource
     {
 
-        public Box3d Bounds { get; private set; }
+        public Box3f Bounds { get; private set; }
 
-        public ParticlesFromBounds(double spacing, Box3d bounds) : base(spacing)
+        public ParticlesFromBounds(float spacing, Box3f bounds) : base(spacing)
         {
             Bounds = bounds;
             CreateParticles();
         }
 
-        public ParticlesFromBounds(double spacing, Box3d bounds, Box3d exclusion) : base(spacing)
+        public ParticlesFromBounds(float spacing, Box3f bounds, Box3f exclusion) : base(spacing)
         {
             Bounds = bounds;
             CreateParticles(exclusion);
@@ -31,7 +31,7 @@ namespace PositionBasedDynamics.Sources
             int numY = (int)(Bounds.Height / Diameter);
             int numZ = (int)(Bounds.Depth / Diameter);
 
-            Positions = new List<Vector3d>(numX * numY * numZ);
+            Positions = new List<Vector3f>(numX * numY * numZ);
 
             for (int z = 0; z < numZ; z++)
             {
@@ -39,7 +39,7 @@ namespace PositionBasedDynamics.Sources
                 {
                     for (int x = 0; x < numX; x++)
                     {
-                        Vector3d pos = new Vector3d();
+                        Vector3f pos = new Vector3f();
                         pos.x = Diameter * x + Bounds.Min.x + Spacing;
                         pos.y = Diameter * y + Bounds.Min.y + Spacing;
                         pos.z = Diameter * z + Bounds.Min.z + Spacing;
@@ -51,14 +51,14 @@ namespace PositionBasedDynamics.Sources
 
         }
 
-        private void CreateParticles(Box3d exclusion)
+        private void CreateParticles(Box3f exclusion)
         {
 
             int numX = (int)(Bounds.Width / Diameter);
             int numY = (int)(Bounds.Height / Diameter);
             int numZ = (int)(Bounds.Depth / Diameter);
 
-            Positions = new List<Vector3d>();
+            Positions = new List<Vector3f>();
 
             for (int z = 0; z < numZ; z++)
             {
@@ -66,7 +66,7 @@ namespace PositionBasedDynamics.Sources
                 {
                     for (int x = 0; x < numX; x++)
                     {
-                        Vector3d pos = new Vector3d();
+                        Vector3f pos = new Vector3f();
                         pos.x = Diameter * x + Bounds.Min.x + Spacing;
                         pos.y = Diameter * y + Bounds.Min.y + Spacing;
                         pos.z = Diameter * z + Bounds.Min.z + Spacing;

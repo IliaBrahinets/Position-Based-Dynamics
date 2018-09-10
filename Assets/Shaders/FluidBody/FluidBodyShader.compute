@@ -1,0 +1,69 @@
+#include "../Config/ConfigurationData.cginc"
+#include "../Kernels/CubicKernel3D.cginc"
+
+#pragma kernel ComputeViscosityVelocityGradStep
+#pragma kernel ComputeViscosityUpdateVelocityStep
+
+StructuredBuffer<uint> NeighboursMap : register(t0);
+StructuredBuffer<uint> NumNeighbours : register(t1);
+
+StructuredBuffer<float3> Predicted : register(t2);
+RWStructuredBuffer<float3> Velocities : register(u0);
+RWStructuredBuffer<float3> VelocitiesDelta : register(u1);
+
+StructuredBuffer<float> Densities : register(t3);
+
+cbuffer consts{
+    uint NumMatterParticles;
+    float ViscosityMulMass;
+}
+
+uint GetNeighbour(int i, int j);
+
+//Kernel consts
+[numthreads(BLOCK_SIZE,1,1)]
+void ComputeViscosityVelocityGradStep (uint3 id : SV_DispatchThreadID){
+    
+    uint i = id.x;
+
+    if(i >= NumMatterParticles) return;
+
+    // Compute viscosity forces (XSPH) 
+    //Viscosity for particle Pi. Modifies the velocity.
+    //Vi = Vi + c * SUMj Vij * W(Pi - Pj, h)
+    float3 pi = Predicted[i];
+
+    int numNeighbours = NumNeighbours[i];
+
+    float3 currVelocityGrad = 0;
+
+    for (int j = 0; j < numNeighbours; j++)
+    {
+        
+        uint neighborIndex = GetNeighbour(i,j);
+        if (neighborIndex < NumMatterParticles) // Test if fluid particle
+        {
+            float invDensity = 1.0 / Densities[neighborIndex];
+            float3 pn = Predicted[neighborIndex];
+
+            float k = W(pi.x - pn.x, pi.y - pn.y, pi.z - pn.z) * ViscosityMulMass * invDensity;
+            currVelocityGrad -= k * (Velocities[i] - Velocities[neighborIndex]);
+        }
+    }
+
+    VelocitiesDelta[i] = currVelocityGrad;
+
+}
+
+[numthreads(BLOCK_SIZE,1,1)]
+void ComputeViscosityUpdateVelocityStep (uint3 id : SV_DispatchThreadID){
+    uint i = id.x;
+
+    if(i >= NumMatterParticles) return;
+
+    Velocities[i] += VelocitiesDelta[i];
+}
+
+inline uint GetNeighbour(int i, int j){
+    return NeighboursMap[i * MAX_NEIGHBOURS + j];
+}

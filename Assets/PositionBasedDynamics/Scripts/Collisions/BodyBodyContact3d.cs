@@ -15,9 +15,9 @@ namespace PositionBasedDynamics.Collisions
 
         private int i0, i1;
 
-        private double Diameter, Diameter2;
+        private float Diameter, Diameter2;
 
-        private double Mass0, Mass1;
+        private float Mass0, Mass1;
 
         internal BodyBodyContact3d(Body3d body0, int i0, Body3d body1, int i1)
         {
@@ -30,23 +30,23 @@ namespace PositionBasedDynamics.Collisions
             Diameter = Body0.ParticleRadius + Body1.ParticleRadius;
             Diameter2 = Diameter * Diameter;
 
-            double sum = Body0.ParticleMass + Body1.ParticleMass;
+            float sum = Body0.ParticleMass + Body1.ParticleMass;
             Mass0 = Body0.ParticleMass / sum;
             Mass1 = Body1.ParticleMass / sum;
         }
 
-        internal override void ResolveContact(double di)
+        internal override void ResolveContact(float di)
         {
-            Vector3d normal = Body0.Predicted[i0] - Body1.Predicted[i1];
+            Vector3f normal = Body0.Predicted[i0] - Body1.Predicted[i1];
 
-            double sqLen = normal.SqrMagnitude;
+            float sqLen = normal.SqrMagnitude;
 
             if (sqLen <= Diameter2 && sqLen > 1e-9)
             {
-                double len = Math.Sqrt(sqLen);
+                float len = (float)Math.Sqrt(sqLen);
                 normal /= len;
 
-                Vector3d delta = di * (Diameter - len) * normal;
+                Vector3f delta = (float)di * (Diameter - len) * normal;
 
                 Body0.Predicted[i0] += delta * Mass0;
                 Body0.Positions[i0] += delta * Mass0;

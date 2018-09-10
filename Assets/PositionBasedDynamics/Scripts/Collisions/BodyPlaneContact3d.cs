@@ -15,11 +15,11 @@ namespace PositionBasedDynamics.Collisions
 
         private int i0;
 
-        private Vector3d Normal;
+        private Vector3f Normal;
 
-        private double Distance;
+        private float Distance;
 
-        internal BodyPlaneContact3d(Body3d body0, int i0, Vector3d normal, double dist)
+        internal BodyPlaneContact3d(Body3d body0, int i0, Vector3f normal, float dist)
         {
             Body0 = body0;
             this.i0 = i0;
@@ -28,13 +28,13 @@ namespace PositionBasedDynamics.Collisions
             Distance = dist;
         }
 
-        internal override void ResolveContact(double di)
+        internal override void ResolveContact(float di)
         {
-            double d = Vector3d.Dot(Normal, Body0.Predicted[i0]) + Distance - Body0.ParticleRadius;
+            float d = Vector3f.Dot(Normal, Body0.Predicted[i0]) + Distance - Body0.ParticleRadius;
 
             if (d < 0.0)
             {
-                Vector3d delta = Normal * -d * di;
+                Vector3f delta = Normal * -d * di;
                 Body0.Positions[i0] += delta;
                 Body0.Predicted[i0] += delta;
             }

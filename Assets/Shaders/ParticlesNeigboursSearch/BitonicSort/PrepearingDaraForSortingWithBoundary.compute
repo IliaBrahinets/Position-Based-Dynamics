@@ -1,0 +1,26 @@
+#include "../CellGridHelper.cginc"
+#include "../ParticleType.cginc"
+
+#define BLOCK_SIZE 512
+
+#pragma kernel Convert
+
+cbuffer consts{
+    uint NumMatterParticles;
+}
+
+StructuredBuffer<float3> InputMatterParticles : register(t0);
+StructuredBuffer<float3> InputBoundaryParticles:register(t1);
+RWStructuredBuffer<Particle> Output : register(u0);
+
+[numthreads(BLOCK_SIZE,1,1)]
+void Convert(uint3 Gid  : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint  GI : SV_GroupIndex) {
+    Output[DTid.x].number = DTid.x;
+    if(DTid.x < NumMatterParticles){
+        Output[DTid.x].cell = Floor(InputMatterParticles[DTid.x]);
+    }
+    else
+    {
+        Output[DTid.x].cell = Floor(InputBoundaryParticles[DTid.x - NumMatterParticles]);
+    }
+}

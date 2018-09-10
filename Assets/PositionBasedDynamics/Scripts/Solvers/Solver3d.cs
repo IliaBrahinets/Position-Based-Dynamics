@@ -17,7 +17,7 @@ namespace PositionBasedDynamics.Solvers
 
         public int CollisionIterations { get; set; }
 
-        public double SleepThreshold { get; set; }
+        public float SleepThreshold { get; set; }
 
         public List<Body3d> Bodies { get; private set; }
 
@@ -53,7 +53,7 @@ namespace PositionBasedDynamics.Solvers
             Bodies.Add(body);
         }
 
-        public void StepPhysics(double dt)
+        public void StepPhysics(float dt)
         {
             if (dt == 0.0) return;
 
@@ -75,7 +75,7 @@ namespace PositionBasedDynamics.Solvers
 
         }
 
-        private void AppyExternalForces(double dt)
+        private void AppyExternalForces(float dt)
         {
 
             for (int j = 0; j < Bodies.Count; j++)
@@ -94,7 +94,7 @@ namespace PositionBasedDynamics.Solvers
             }
         }
 
-        private void EstimatePositions(double dt)
+        private void EstimatePositions(float dt)
         {
             for (int j = 0; j < Bodies.Count; j++)
             {
@@ -124,7 +124,7 @@ namespace PositionBasedDynamics.Solvers
                 Collisions[i].FindContacts(Bodies, contacts);
             }
 
-            double di = 1.0 / CollisionIterations;
+            float di = 1.0f / CollisionIterations;
 
             for(int i = 0; i < CollisionIterations; i++)
             {
@@ -148,10 +148,10 @@ namespace PositionBasedDynamics.Solvers
             }
         }
 
-        private void UpdateVelocities(double dt)
+        private void UpdateVelocities(float dt)
         {
-            double invDt = 1.0 / dt;
-            double threshold2 = SleepThreshold * dt;
+            float invDt = 1.0f / dt;
+            float threshold2 = SleepThreshold * dt;
             threshold2 *= threshold2;
 
             for (int j = 0; j < Bodies.Count; j++)
@@ -160,12 +160,12 @@ namespace PositionBasedDynamics.Solvers
 
                 for (int i = 0; i < body.NumParticles; i++)
                 {
-                    Vector3d d = body.Predicted[i] - body.Positions[i];
+                    Vector3f d = body.Predicted[i] - body.Positions[i];
                     body.Velocities[i] = d * invDt;
 
                     double m = body.Velocities[i].SqrMagnitude;
                     if (m < threshold2)
-                        body.Velocities[i] = Vector3d.Zero;
+                        body.Velocities[i] = Vector3f.Zero;
                 }
             }
         }

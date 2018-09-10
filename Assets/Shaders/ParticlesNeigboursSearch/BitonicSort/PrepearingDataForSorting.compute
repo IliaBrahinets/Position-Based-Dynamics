@@ -1,0 +1,16 @@
+#include "../CellGridHelper.cginc"
+#include "../ParticleType.cginc"
+
+#define BLOCK_SIZE 512
+
+#pragma kernel Convert
+
+
+StructuredBuffer<float3> Input : register(t0);
+RWStructuredBuffer<Particle> Output : register(u0);
+
+[numthreads(BLOCK_SIZE,1,1)]
+void Convert(uint3 Gid  : SV_GroupID, uint3 DTid : SV_DispatchThreadID, uint3 GTid : SV_GroupThreadID, uint  GI : SV_GroupIndex) {
+    Output[DTid.x].number = DTid.x;
+    Output[DTid.x].cell = Floor(Input[DTid.x]);
+}
