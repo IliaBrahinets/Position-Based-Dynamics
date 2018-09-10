@@ -12,8 +12,8 @@ namespace PositionBasedDynamics.Collisions
         private const uint BLOCK_SIZE = 512;
         #endregion
 
-        public ComputeBuffer<uint> NeighboursMap;
-        public ComputeBuffer<uint> NumNeighbours;
+        public ComputeBuffer<uint> NeighboursMap { get; private set; }
+        public ComputeBuffer<uint> NumNeighbours { get; private set; }
 
         private ComputeShader NeighboursMapShader;
         private ComputeBuffer<Vector3i> NeighbourShifts;

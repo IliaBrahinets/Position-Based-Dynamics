@@ -12,7 +12,7 @@ namespace PositionBasedDynamics.Collisions
         #region  consts
         private const uint BLOCK_SIZE = 512;
         #endregion
-        public ComputeBuffer<Particle> Prepeared;
+        public ComputeBuffer<Particle> Prepeared { get; private set; }
         private float cellSize;
         private float InvCellSize;
         private ComputeShader SortDataPrepearerShader;

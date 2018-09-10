@@ -10,8 +10,8 @@ namespace PositionBasedDynamics.Collisions
         private BitonicSorterGPU Sorter;
         private NeighboursMapConstructor MapConstructor;
 
-        public ComputeBuffer<uint> NeighboursMap;
-        public ComputeBuffer<uint> NumNeighbours;
+        public ComputeBuffer<uint> NeighboursMap { get; private set; }
+        public ComputeBuffer<uint> NumNeighbours { get; private set; }
 
         public ParticleNeighboursSearcherGPU(float cellSize){
             Prepearer = new BitonicSorterPrepearerGPU(cellSize);
