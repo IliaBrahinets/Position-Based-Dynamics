@@ -15,11 +15,11 @@ namespace PositionBasedDynamics.Bodies.Fluids
     {
         public Vector3f[] Positions { get; private set; }
         
-        public ComputeBuffer GPUPositions { get; set; }
+        public ComputeBuffer<Vector3f> GPUPositions { get; set; }
 
         public float[] Psi { get; private set; } 
 
-        public ComputeBuffer GPUPsi { get; set; }
+        public ComputeBuffer<float> GPUPsi { get; set; }
 
         public double ParticleRadius { get; private set; }
 
@@ -50,9 +50,7 @@ namespace PositionBasedDynamics.Bodies.Fluids
                 Positions[i] = new Vector3f(pos.x, pos.y, pos.z);
             }
 
-            GPUPositions = new ComputeBuffer(Positions.Length, sizeof(float) * 3);
-            GPUPositions.SetData(Positions);
-
+            GPUPositions = new ComputeBuffer<Vector3f>(Positions);
         }
 
         private void CreateBoundryPsi()
@@ -88,8 +86,7 @@ namespace PositionBasedDynamics.Bodies.Fluids
                 Psi[i] = (float) (Density * volume);
             }
 
-            GPUPsi = new ComputeBuffer(Psi.Length, sizeof(float));
-            GPUPsi.SetData(Psi);
+            GPUPsi = new ComputeBuffer<float>(Psi);
 
         }
 

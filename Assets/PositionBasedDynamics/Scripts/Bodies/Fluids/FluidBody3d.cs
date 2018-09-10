@@ -21,7 +21,7 @@ namespace PositionBasedDynamics.Bodies.Fluids
 
         public float[] Lambda { get; private set; }
 
-        public ComputeBuffer GPULambda { get; private set; }
+        public ComputeBuffer<float> GPULambda { get; private set; }
 
         internal CubicKernel3dGPU Kernel { get; private set; }
 
@@ -29,7 +29,7 @@ namespace PositionBasedDynamics.Bodies.Fluids
 
         internal float[] Densities { get; private set; }
 
-        internal ComputeBuffer GPUDensities { get; private set; }
+        internal ComputeBuffer<float> GPUDensities { get; private set; }
 
         private ComputeBuffer GPUVelocitiesDelta;
 
@@ -87,9 +87,9 @@ namespace PositionBasedDynamics.Bodies.Fluids
             NeighboursSearcher = new ParticleNeighboursSearcherGPU(cellSize);
 
             Lambda = new float[NumParticles];
-            GPULambda = new ComputeBuffer(NumParticles, sizeof(float));
+            GPULambda = new ComputeBuffer<float>(NumParticles);
             Densities = new float[NumParticles];
-            GPUDensities = new ComputeBuffer(NumParticles, sizeof(float));
+            GPUDensities = new ComputeBuffer<float>(NumParticles);
 
             InitCurrentShader();
             InitShaderConsts();
@@ -138,7 +138,7 @@ namespace PositionBasedDynamics.Bodies.Fluids
             CurrentShader.SetBuffer(KERNEL_ID_ComputeViscosityVelocityGradStep,"Predicted", GPUPredicted);
 
             if(GPUVelocitiesDelta == null){
-                GPUVelocitiesDelta = new ComputeBuffer(GPUVelocities.count,GPUVelocities.stride);
+                GPUVelocitiesDelta = new ComputeBuffer(GPUVelocities.Count,GPUVelocities.ItemSize);
             }
 
             CurrentShader.SetBuffer(KERNEL_ID_ComputeViscosityVelocityGradStep,"Velocities", GPUVelocities);

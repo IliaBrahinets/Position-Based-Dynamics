@@ -12,11 +12,11 @@ namespace PositionBasedDynamics.Collisions
         private const uint BLOCK_SIZE = 512;
         #endregion
 
-        public ComputeBuffer NeighboursMap;
-        public ComputeBuffer NumNeighbours;
+        public ComputeBuffer<uint> NeighboursMap;
+        public ComputeBuffer<uint> NumNeighbours;
 
         private ComputeShader NeighboursMapShader;
-        private ComputeBuffer NeighbourShifts;
+        private ComputeBuffer<Vector3i> NeighbourShifts;
         private float cellSize;
 
         private int KERNEL_ID_CONSTRUCT;
@@ -25,16 +25,14 @@ namespace PositionBasedDynamics.Collisions
             NeighboursMapShader = ShaderContext.Instance.GetComputeShader("NeighboursMapConstructorShader");
             KERNEL_ID_CONSTRUCT = NeighboursMapShader.FindKernel("ConstructMap");
 
-            NeighbourShifts = new ComputeBuffer(26, sizeof(int)*3);
-            Vector3i[] shifts = GetNeighbourShifts();
-            NeighbourShifts.SetData(shifts);
+            NeighbourShifts = new ComputeBuffer<Vector3i>(GetNeighbourShifts());
 
             this.cellSize = cellSize;
         }
 
-         public void Construct(ComputeBuffer sortedParticles, ComputeBuffer matterParticles, ComputeBuffer boundaryParticles){
-            int numAllParticles = sortedParticles.count;
-            int numMatterParticles = matterParticles.count;
+         public void Construct(ComputeBuffer<Particle> sortedParticles, ComputeBuffer<Vector3f> matterParticles, ComputeBuffer<Vector3f> boundaryParticles){
+            int numAllParticles = sortedParticles.Count;
+            int numMatterParticles = matterParticles.Count;
 
             NeighboursMapShader.SetFloat("CellSize",(float)cellSize);
             NeighboursMapShader.SetFloat("InvCellSize",1f/cellSize);
@@ -50,8 +48,8 @@ namespace PositionBasedDynamics.Collisions
             NeighboursMapShader.SetBuffer(KERNEL_ID_CONSTRUCT,"SortedParticles",sortedParticles);
 
             if(NeighboursMap == null){
-                NeighboursMap = new ComputeBuffer((int)MAX_NEIGHBOURS*numMatterParticles,sizeof(uint));
-                NumNeighbours = new ComputeBuffer(numMatterParticles, sizeof(uint));
+                NeighboursMap = new ComputeBuffer<uint>((int)MAX_NEIGHBOURS*numMatterParticles);
+                NumNeighbours = new ComputeBuffer<uint>(numMatterParticles);
             }
             
             NeighboursMapShader.SetBuffer(KERNEL_ID_CONSTRUCT,"NeighboursMap",NeighboursMap);

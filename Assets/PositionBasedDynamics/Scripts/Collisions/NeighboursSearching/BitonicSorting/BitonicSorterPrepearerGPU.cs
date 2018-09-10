@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 using PositionBasedDynamics.ShaderHelpers;
+using Common.Mathematics.LinearAlgebra;
 
 namespace PositionBasedDynamics.Collisions
 {
@@ -11,7 +12,7 @@ namespace PositionBasedDynamics.Collisions
         #region  consts
         private const uint BLOCK_SIZE = 512;
         #endregion
-        public ComputeBuffer Prepeared;
+        public ComputeBuffer<Particle> Prepeared;
 
         private double cellSize;
         private double InvCellSize;
@@ -32,14 +33,14 @@ namespace PositionBasedDynamics.Collisions
             SortDataPrepearerShader.SetFloat("CellSize",(float)cellSize);
             SortDataPrepearerShader.SetFloat("InvCellSize",(float)InvCellSize);
         }
-        public void PrepareData(ComputeBuffer elements){
+        public void PrepareData(ComputeBuffer<Vector3f> elements){
 
-            int numAll = elements.count;
+            int numAll = elements.Count;
             
             SortDataPrepearerShader.SetBuffer(KERNEL_ID_CONVERT, "Input", elements);
             
             if(Prepeared == null){
-                Prepeared = new ComputeBuffer(numAll, Particle.SIZE);
+                Prepeared = new ComputeBuffer<Particle>(numAll);
             }
 
             SortDataPrepearerShader.SetBuffer(KERNEL_ID_CONVERT, "Output", Prepeared);

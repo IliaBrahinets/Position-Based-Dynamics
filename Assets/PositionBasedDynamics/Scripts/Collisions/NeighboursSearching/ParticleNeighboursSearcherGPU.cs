@@ -10,8 +10,8 @@ namespace PositionBasedDynamics.Collisions
         private BitonicSorterGPU Sorter;
         private NeighboursMapConstructor MapConstructor;
 
-        public ComputeBuffer NeighboursMap;
-        public ComputeBuffer NumNeighbours;
+        public ComputeBuffer<uint> NeighboursMap;
+        public ComputeBuffer<uint> NumNeighbours;
 
         public ParticleNeighboursSearcherGPU(float cellSize){
             Prepearer = new BitonicSorterPrepearerGPU(cellSize);
@@ -20,19 +20,19 @@ namespace PositionBasedDynamics.Collisions
             MapConstructor = new NeighboursMapConstructor(cellSize);  
         }
 
-        public void NeighbourhoodSearch(ComputeBuffer rawParticles){
+        public void NeighbourhoodSearch(ComputeBuffer<Vector3f> rawParticles){
 
             Prepearer.PrepareData(rawParticles);
 
             Sorter.Sort(Prepearer.Prepeared); 
 
-            MapConstructor.Construct(Prepearer.Prepeared,rawParticles,new ComputeBuffer(1,1));      
+            MapConstructor.Construct(Prepearer.Prepeared,rawParticles,new ComputeBuffer<Vector3f>(1));      
 
             NeighboursMap = MapConstructor.NeighboursMap;
             NumNeighbours = MapConstructor.NumNeighbours;     
         }
 
-        public void NeighbourhoodSearch(ComputeBuffer rawParticles, ComputeBuffer rawBoundaryParticle){
+        public void NeighbourhoodSearch(ComputeBuffer<Vector3f> rawParticles, ComputeBuffer<Vector3f> rawBoundaryParticle){
 
             PrepearerWithBoundary.PrepareData(rawParticles,rawBoundaryParticle);
 

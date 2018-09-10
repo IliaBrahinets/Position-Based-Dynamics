@@ -27,9 +27,9 @@ namespace PositionBasedDynamics.Collisions
 			KERNEL_ID_TRANSPOSE = bitonicShader.FindKernel("MatrixTranspose");
 		}
 
-		public void Sort(ComputeBuffer elements)
+		public void Sort(ComputeBuffer<Particle> elements)
 		{
-			uint NUM_ELEMENTS = (uint)elements.count;
+			uint NUM_ELEMENTS = (uint)elements.Count;
 
 			SortDataValidation(NUM_ELEMENTS);
 			

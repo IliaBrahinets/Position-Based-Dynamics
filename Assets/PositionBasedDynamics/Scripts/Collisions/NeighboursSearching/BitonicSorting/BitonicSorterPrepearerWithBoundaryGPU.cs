@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 using PositionBasedDynamics.ShaderHelpers;
+using Common.Mathematics.LinearAlgebra;
 
 namespace PositionBasedDynamics.Collisions
 {
@@ -11,7 +12,7 @@ namespace PositionBasedDynamics.Collisions
         #region  consts
         private const uint BLOCK_SIZE = 512;
         #endregion
-        public ComputeBuffer Prepeared;
+        public ComputeBuffer<Particle> Prepeared;
         private float cellSize;
         private float InvCellSize;
         private ComputeShader SortDataPrepearerShader;
@@ -31,18 +32,18 @@ namespace PositionBasedDynamics.Collisions
             SortDataPrepearerShader.SetFloat("CellSize",cellSize);
             SortDataPrepearerShader.SetFloat("InvCellSize",InvCellSize);
         }
-        public void PrepareData(ComputeBuffer matterParticles, ComputeBuffer boundaryParticles){
+        public void PrepareData(ComputeBuffer<Vector3f> matterParticles, ComputeBuffer<Vector3f> boundaryParticles){
 
-            int numAll = matterParticles.count + boundaryParticles.count;
+            int numAll = matterParticles.Count + boundaryParticles.Count;
             
-            int numMatterParticles = matterParticles.count;
+            int numMatterParticles = matterParticles.Count;
             SortDataPrepearerShader.SetInt("NumMatterParticles",numMatterParticles);
 
             SortDataPrepearerShader.SetBuffer(KERNEL_ID_CONVERT, "InputMatterParticles", matterParticles);
             SortDataPrepearerShader.SetBuffer(KERNEL_ID_CONVERT, "InputBoundaryParticles", boundaryParticles);
             
             if(Prepeared == null){
-                Prepeared = new ComputeBuffer(numAll, Particle.SIZE);
+                Prepeared = new ComputeBuffer<Particle>(numAll);
             }
 
             SortDataPrepearerShader.SetBuffer(KERNEL_ID_CONVERT, "Output", Prepeared);

@@ -28,15 +28,15 @@ namespace PositionBasedDynamics.Bodies
 
         public Vector3f[] Positions { get; private set; }
 
-        public ComputeBuffer GPUPositions { get; private set; }
+        public ComputeBuffer<Vector3f> GPUPositions { get; private set; }
 
         public Vector3f[] Predicted { get; private set; }
 
-        public ComputeBuffer GPUPredicted { get; private set; }
+        public ComputeBuffer<Vector3f> GPUPredicted { get; private set; }
 
         public Vector3f[] Velocities { get; private set; }
 
-        public ComputeBuffer GPUVelocities { get; private set; }
+        public ComputeBuffer<Vector3f> GPUVelocities { get; private set; }
 
         public Box3f Bounds { get; private set; }
 
@@ -70,11 +70,11 @@ namespace PositionBasedDynamics.Bodies
         public Body3d(int numParticles, float radius, float mass)
         {
             Positions = new Vector3f[numParticles];
-            GPUPositions = new ComputeBuffer(numParticles, sizeof(float) * 3);
+            GPUPositions = new ComputeBuffer<Vector3f>(numParticles);
             Predicted = new Vector3f[numParticles];
-            GPUPredicted = new ComputeBuffer(numParticles, sizeof(float) * 3);
+            GPUPredicted = new ComputeBuffer<Vector3f>(numParticles);
             Velocities = new Vector3f[numParticles];
-            GPUVelocities = new ComputeBuffer(numParticles, sizeof(float) * 3);
+            GPUVelocities = new ComputeBuffer<Vector3f>(numParticles);
             Constraints = new List<Constraint3d>();
             StaticConstraints = new List<StaticConstraint3d>();
 

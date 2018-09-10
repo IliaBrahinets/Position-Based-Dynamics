@@ -7,7 +7,7 @@ using UnityEngine;
 namespace PositionBasedDynamics.Collisions
 {
     [StructLayout(LayoutKind.Sequential)]
-    struct Particle:IComparable<Particle> {
+    public struct Particle:IComparable<Particle> {
         static public int SIZE = sizeof(uint) + 3*sizeof(int); 
         public uint number;
         public Vector3Int cell;
