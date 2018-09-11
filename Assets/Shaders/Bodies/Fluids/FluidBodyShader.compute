@@ -1,5 +1,5 @@
-#include "../Config/ConfigurationData.cginc"
-#include "../Kernels/CubicKernel3D.cginc"
+#include "../../Config/ConfigurationData.cginc"
+#include "../../Kernels/CubicKernel3D.cginc"
 
 #pragma kernel ComputeViscosityVelocityGradStep
 #pragma kernel ComputeViscosityUpdateVelocityStep

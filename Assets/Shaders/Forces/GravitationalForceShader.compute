@@ -1,4 +1,4 @@
-﻿#include "./Config/ConfigurationData.cginc"
+﻿#include "../Config/ConfigurationData.cginc"
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMains
 

@@ -18,7 +18,7 @@ namespace PositionBasedDynamics
     public class FluidBodyDemo : MonoBehaviour
     {
 
-        private const float timeStep = 1.0f / 120.0f;
+        private const float timeStep = 1.0f / 60.0f;
 
         private const int GRID_SIZE = 10;
         
